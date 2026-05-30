@@ -346,36 +346,40 @@
     }
   }
 
-  // ── Patch MediaFrame.Post ─────────────────────────────────────────────────
-  var OrigPost = wp.media.view.MediaFrame.Post;
+  // ── Intercept wp.media() factory ─────────────────────────────────────────
+  //
+  // Gutenberg's MediaUpload component calls wp.media({...}) to create frames.
+  // wp.media() may hold an internal reference to the original MediaFrame.Post,
+  // so patching the class prototype alone is not enough.
+  // We wrap the factory itself — this fires for every frame regardless of type.
+  //
+  var _origWpMedia = wp.media;
 
-  wp.media.view.MediaFrame.Post = OrigPost.extend({
+  wp.media = function (attributes) {
+    var frame = _origWpMedia.apply(this, arguments);
 
-    initialize: function () {
-      console.log(DBG, 'MediaFrame.Post initialize');
-      OrigPost.prototype.initialize.apply(this, arguments);
+    if (frame && typeof frame.on === 'function') {
+      console.log(DBG, 'frame created, hooking piwigo events');
 
-      this.on('content:create:piwigo-browser', this.piwigoContent, this);
+      // When the user clicks the "Piwigo" tab, inject our content view.
+      frame.on('content:create:piwigo-browser', function (content) {
+        console.log(DBG, 'content:create:piwigo-browser');
+        content.view = new PiwigoBrowserContent({ controller: frame });
+      });
 
-      this.on('router:create:browse', function (routerView) {
-        console.log(DBG, 'router:create:browse fired', routerView);
+      // When the router renders (tab bar appears), add the Piwigo tab.
+      frame.on('router:create:browse', function (routerView) {
+        console.log(DBG, 'router:create:browse', routerView);
         addPiwigoTab(routerView);
-      }, this);
-    },
+      });
+    }
 
-    browseRouter: function (routerView) {
-      console.log(DBG, 'browseRouter called', typeof OrigPost.prototype.browseRouter);
-      if (typeof OrigPost.prototype.browseRouter === 'function') {
-        OrigPost.prototype.browseRouter.apply(this, arguments);
-      }
-      addPiwigoTab(routerView);
-    },
+    return frame;
+  };
 
-    // Renders our Piwigo browser when the 'piwigo-browser' content mode is active.
-    piwigoContent: function (content) {
-      content.view = new PiwigoBrowserContent({ controller: this });
-    },
+  // Preserve all static properties of the original wp.media (view, controller, etc.)
+  _.extend(wp.media, _origWpMedia);
 
-  });
+  console.log(DBG, 'wp.media factory wrapped');
 
 }(jQuery, wp));
