@@ -9,10 +9,14 @@ class Piwigo_Settings
   // ── Lifecycle ─────────────────────────────────────────────────────────────
   public static function activate(): void
   {
-    add_option(self::OPTION_NS . 'server_url',     '');
-    add_option(self::OPTION_NS . 'default_mode',   'import');
-    add_option(self::OPTION_NS . 'proxy_enabled',  '0');
-    add_option(self::OPTION_NS . 'meta_mapping',   serialize(array(
+    add_option(self::OPTION_NS . 'server_url',        '');
+    add_option(self::OPTION_NS . 'api_key_id_enc',    '');
+    add_option(self::OPTION_NS . 'api_key_id_iv',     '');
+    add_option(self::OPTION_NS . 'api_key_secret_enc','');
+    add_option(self::OPTION_NS . 'api_key_secret_iv', '');
+    add_option(self::OPTION_NS . 'default_mode',      'import');
+    add_option(self::OPTION_NS . 'proxy_enabled',     '0');
+    add_option(self::OPTION_NS . 'meta_mapping',      serialize(array(
       'title'       => true,
       'description' => true,
       'tags'        => true,
@@ -52,10 +56,16 @@ class Piwigo_Settings
       $server_url = esc_url_raw(trim($_POST['server_url'] ?? ''));
       update_option(self::OPTION_NS . 'server_url', rtrim($server_url, '/'));
 
-      // API Key — encrypt before storing
-      $raw_key = trim($_POST['api_key'] ?? '');
-      if ($raw_key !== '' && $raw_key !== str_repeat('•', 32)) {
-        self::store_api_key($raw_key);
+      // API Key ID — encrypt before storing (pkid-YYYYMMDD-xxxxxxxxxxxxxxxxxxxx)
+      $raw_key_id = trim($_POST['api_key_id'] ?? '');
+      if ($raw_key_id !== '' && !str_starts_with($raw_key_id, '•')) {
+        self::store_field('api_key_id', $raw_key_id);
+      }
+
+      // API Key Secret — encrypt before storing (40-char alphanumeric)
+      $raw_key_secret = trim($_POST['api_key_secret'] ?? '');
+      if ($raw_key_secret !== '' && !str_starts_with($raw_key_secret, '•')) {
+        self::store_field('api_key_secret', $raw_key_secret);
       }
 
       update_option(self::OPTION_NS . 'default_mode',  in_array($_POST['default_mode'] ?? '', array('link', 'import')) ? $_POST['default_mode'] : 'import');
@@ -86,9 +96,10 @@ class Piwigo_Settings
       }
     }
 
-    $server_url    = get_option(self::OPTION_NS . 'server_url', '');
-    $api_key_set   = (bool) get_option(self::OPTION_NS . 'api_key_enc', '');
-    $default_mode  = get_option(self::OPTION_NS . 'default_mode', 'import');
+    $server_url       = get_option(self::OPTION_NS . 'server_url', '');
+    $api_key_id_set   = (bool) get_option(self::OPTION_NS . 'api_key_id_enc', '');
+    $api_key_sec_set  = (bool) get_option(self::OPTION_NS . 'api_key_secret_enc', '');
+    $default_mode     = get_option(self::OPTION_NS . 'default_mode', 'import');
     $proxy_enabled = get_option(self::OPTION_NS . 'proxy_enabled', '0');
     $mapping_raw   = get_option(self::OPTION_NS . 'meta_mapping', '');
     $mapping       = $mapping_raw ? unserialize($mapping_raw) : array();
@@ -97,18 +108,25 @@ class Piwigo_Settings
   }
 
   // ── API Key encryption ────────────────────────────────────────────────────
-  public static function store_api_key(string $key): void
+
+  /**
+   * Encrypt and store one API key field ('api_key_id' or 'api_key_secret').
+   */
+  public static function store_field(string $field, string $value): void
   {
     $iv  = random_bytes(16);
-    $enc = openssl_encrypt($key, 'AES-256-CBC', self::derive_cipher_key(), 0, $iv);
-    update_option(self::OPTION_NS . 'api_key_enc', base64_encode($enc));
-    update_option(self::OPTION_NS . 'api_key_iv',  base64_encode($iv));
+    $enc = openssl_encrypt($value, 'AES-256-CBC', self::derive_cipher_key(), 0, $iv);
+    update_option(self::OPTION_NS . $field . '_enc', base64_encode($enc));
+    update_option(self::OPTION_NS . $field . '_iv',  base64_encode($iv));
   }
 
-  public static function get_api_key(): string
+  /**
+   * Decrypt and return one API key field.
+   */
+  public static function get_field(string $field): string
   {
-    $enc = get_option(self::OPTION_NS . 'api_key_enc', '');
-    $iv  = get_option(self::OPTION_NS . 'api_key_iv',  '');
+    $enc = get_option(self::OPTION_NS . $field . '_enc', '');
+    $iv  = get_option(self::OPTION_NS . $field . '_iv',  '');
     if (!$enc || !$iv) return '';
 
     $plain = openssl_decrypt(
@@ -121,9 +139,19 @@ class Piwigo_Settings
     return $plain !== false ? $plain : '';
   }
 
+  /**
+   * Return the combined auth string expected by Piwigo: {pkid}:{secret}
+   */
+  public static function get_api_auth(): string
+  {
+    $id     = self::get_field('api_key_id');
+    $secret = self::get_field('api_key_secret');
+    if (!$id || !$secret) return '';
+    return $id . ':' . $secret;
+  }
+
   private static function derive_cipher_key(): string
   {
-    // Derive 32-byte cipher key from WordPress AUTH_KEY constant
     return hash('sha256', defined('AUTH_KEY') ? AUTH_KEY : wp_salt('auth'), true);
   }
 }

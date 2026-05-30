@@ -14,7 +14,7 @@ class Piwigo_Api
   public function __construct()
   {
     $this->server_url = rtrim(get_option('piwigo_media_server_url', ''), '/');
-    $this->api_key    = Piwigo_Settings::get_api_key();
+    $this->api_key    = Piwigo_Settings::get_api_auth(); // "{pkid}:{secret}"
   }
 
   // ── Public API ─────────────────────────────────────────────────────────────
@@ -116,8 +116,8 @@ class Piwigo_Api
   {
     $h = array('Accept' => 'application/json');
     if ($this->api_key) {
-      // Piwigo 16.1+ API key header
-      $h['X-Piwigo-API-Key'] = $this->api_key;
+      // Piwigo 16.1+ — header name is X-Piwigo-API, value is "{pkid}:{secret}"
+      $h['X-Piwigo-API'] = $this->api_key;
     }
     return $h;
   }

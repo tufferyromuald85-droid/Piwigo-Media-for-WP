@@ -23,16 +23,30 @@
         </td>
       </tr>
       <tr>
-        <th scope="row"><label for="api_key">Piwigo API Key</label></th>
+        <th scope="row"><label for="api_key_id">Piwigo API Key — ID</label></th>
         <td>
-          <input type="password" id="api_key" name="api_key"
+          <input type="text" id="api_key_id" name="api_key_id"
                  class="regular-text"
-                 value="<?= $api_key_set ? esc_attr(str_repeat('•', 32)) : '' ?>"
+                 value="<?= $api_key_id_set ? esc_attr(str_repeat('•', 32)) : '' ?>"
                  placeholder="pkid-YYYYMMDD-xxxxxxxxxxxxxxxxxxxx"
                  autocomplete="off">
           <p class="description">
-            Generate in Piwigo: <em>Admin → Users → Your profile → API Keys</em>.<br>
-            Leave blank to keep the existing key.
+            The key identifier shown in Piwigo: <em>Admin → Users → Profile → API Keys</em>.<br>
+            Format: <code>pkid-YYYYMMDD-xxxxxxxxxxxxxxxxxxxx</code> — leave blank to keep existing.
+          </p>
+        </td>
+      </tr>
+      <tr>
+        <th scope="row"><label for="api_key_secret">Piwigo API Key — Secret</label></th>
+        <td>
+          <input type="password" id="api_key_secret" name="api_key_secret"
+                 class="regular-text"
+                 value="<?= $api_key_sec_set ? esc_attr(str_repeat('•', 40)) : '' ?>"
+                 placeholder="40-character secret"
+                 autocomplete="off">
+          <p class="description">
+            The secret shown <strong>once</strong> when the key is created in Piwigo.<br>
+            Leave blank to keep the existing secret.
           </p>
         </td>
       </tr>
