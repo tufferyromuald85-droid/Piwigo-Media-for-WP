@@ -40,6 +40,30 @@ class Piwigo_Api
     ));
   }
 
+  /**
+   * Search or list all photos — used by the Gutenberg media inserter.
+   * Uses pwg.images.search when a query is given, pwg.categories.getImages otherwise.
+   */
+  public function search_photos(string $query = '', int $page = 1, int $per_page = 20): array|WP_Error
+  {
+    if ($query !== '') {
+      return $this->call('pwg.images.search', array(
+        'query'    => $query,
+        'per_page' => $per_page,
+        'page'     => $page - 1,
+        'order'    => 'date_available DESC',
+      ));
+    }
+
+    // No search query: return all accessible photos
+    return $this->call('pwg.categories.getImages', array(
+      'recursive' => 'true',
+      'per_page'  => $per_page,
+      'page'      => $page - 1,
+      'order'     => 'date_available DESC',
+    ));
+  }
+
   /** List photos in an album, paginated. */
   public function get_album_photos(int $album_id, int $page = 1, int $per_page = 24): array|WP_Error
   {

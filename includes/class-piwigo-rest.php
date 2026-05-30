@@ -10,6 +10,18 @@ class Piwigo_Rest
 
   public static function register_routes(): void
   {
+    // Gutenberg block inserter endpoint (registerInserterMediaCategory fetch)
+    register_rest_route(self::NS, '/inserter-photos', array(
+      'methods'             => WP_REST_Server::READABLE,
+      'callback'            => array(self::class, 'get_inserter_photos'),
+      'permission_callback' => array(self::class, 'can_upload'),
+      'args'                => array(
+        'search'   => array('type' => 'string',  'default' => ''),
+        'per_page' => array('type' => 'integer', 'default' => 20, 'minimum' => 1, 'maximum' => 80),
+        'page'     => array('type' => 'integer', 'default' => 1,  'minimum' => 1),
+      ),
+    ));
+
     register_rest_route(self::NS, '/albums', array(
       'methods'             => WP_REST_Server::READABLE,
       'callback'            => array(self::class, 'get_albums'),
@@ -83,6 +95,21 @@ class Piwigo_Rest
   }
 
   // ── Route handlers ─────────────────────────────────────────────────────────
+
+  public static function get_inserter_photos(WP_REST_Request $request): WP_REST_Response|WP_Error
+  {
+    $api  = new Piwigo_Api();
+    $data = $api->search_photos(
+      sanitize_text_field($request['search']),
+      (int) $request['page'],
+      (int) $request['per_page']
+    );
+
+    if (is_wp_error($data)) return $data;
+
+    $images = $data['result']['images'] ?? array();
+    return rest_ensure_response(array_map(array(self::class, 'format_photo'), $images));
+  }
 
   public static function get_albums(WP_REST_Request $request): WP_REST_Response|WP_Error
   {
