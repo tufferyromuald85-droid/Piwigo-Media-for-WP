@@ -1,0 +1,195 @@
+/* ── PiwigoMedia — media modal styles ── */
+
+/* Container */
+.piwigo-browser-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  font-size: 13px;
+}
+
+/* Breadcrumb */
+.piwigo-breadcrumb {
+  padding: 8px 16px;
+  border-bottom: 1px solid #ddd;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  background: #f9f9f9;
+  flex-shrink: 0;
+}
+.piwigo-back {
+  padding: 3px 8px !important;
+  font-size: 12px !important;
+}
+
+/* Grid */
+.piwigo-grid {
+  list-style: none;
+  margin: 0;
+  padding: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* Album item */
+.piwigo-album-item {
+  width: 120px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  border-radius: 4px;
+  padding: 4px;
+  text-align: center;
+  transition: border-color .15s;
+  background: #fff;
+}
+.piwigo-album-item:hover {
+  border-color: #0073aa;
+}
+.piwigo-album-item img {
+  width: 110px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 2px;
+  display: block;
+}
+.piwigo-album-label {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  word-break: break-word;
+}
+
+/* Photo item */
+.piwigo-photo-item {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #eee;
+  transition: border-color .15s;
+}
+.piwigo-photo-item:hover {
+  border-color: #0073aa;
+}
+.piwigo-photo-item.piwigo-selected {
+  border-color: #0073aa;
+  box-shadow: 0 0 0 2px rgba(0,115,170,.35);
+}
+.piwigo-photo-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Already-imported badge */
+.piwigo-already-imported {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0,115,170,.8);
+  color: #fff;
+  font-size: 10px;
+  text-align: center;
+  padding: 2px 0;
+}
+
+/* No-thumbnail placeholder */
+.piwigo-no-thumb {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: #ddd url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23aaa' d='M21 19V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2zm-14-3l3-4 2.5 3 3.5-5 5 7H5z'/%3E%3C/svg%3E") center/40% no-repeat;
+}
+
+/* Load more */
+.piwigo-load-more {
+  margin: 0 12px 12px;
+  align-self: flex-start;
+}
+
+/* Detail view */
+.piwigo-detail-body {
+  display: flex;
+  gap: 20px;
+  padding: 16px;
+  overflow-y: auto;
+  flex: 1;
+}
+.piwigo-detail-preview {
+  flex: 0 0 260px;
+}
+.piwigo-detail-preview img {
+  max-width: 260px;
+  max-height: 300px;
+  object-fit: contain;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+.piwigo-detail-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.piwigo-detail-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+}
+.piwigo-detail-desc {
+  color: #555;
+  margin: 0;
+}
+.piwigo-mode-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: #f5f5f5;
+  padding: 10px;
+  border-radius: 4px;
+}
+.piwigo-mode-selector label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+.piwigo-detail-status {
+  font-size: 12px;
+  color: #c00;
+  min-height: 16px;
+}
+.piwigo-already-badge {
+  color: #0073aa;
+  font-weight: 600;
+}
+
+/* Utility states */
+.piwigo-loading,
+.piwigo-empty,
+.piwigo-error {
+  padding: 20px;
+  text-align: center;
+  color: #777;
+  width: 100%;
+}
+.piwigo-error {
+  color: #c00;
+}
+.piwigo-empty-item,
+.piwigo-error-item {
+  padding: 20px;
+  color: #777;
+  list-style: none;
+}
