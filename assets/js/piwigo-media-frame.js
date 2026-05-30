@@ -336,6 +336,22 @@
     content.view = new PiwigoBrowserContent({ controller: this });
   };
 
-  console.log(DBG, 'MediaFrame.Post prototype patched');
+  // Also patch MediaFrame.Select (parent class, used directly by some Gutenberg paths)
+  var OrigSelect        = wp.media.view.MediaFrame.Select;
+  var _origSelectInit   = OrigSelect.prototype.initialize;
+  var _origSelectOpen   = OrigSelect.prototype.open;
+  var _origPostOpen     = OrigPost.prototype.open;
+
+  OrigSelect.prototype.open = function () {
+    console.log(DBG, 'MediaFrame.SELECT open() called ← Gutenberg uses Select');
+    return _origSelectOpen.apply(this, arguments);
+  };
+
+  OrigPost.prototype.open = function () {
+    console.log(DBG, 'MediaFrame.POST open() called ← Classic Editor path');
+    return _origPostOpen.apply(this, arguments);
+  };
+
+  console.log(DBG, 'MediaFrame.Post + Select prototypes patched — open() intercepted for diagnostics');
 
 }(jQuery, wp));
