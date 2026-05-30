@@ -43,6 +43,17 @@ class Piwigo_Media_Tab
       ),
     );
 
+    // ── Gutenberg "Piwigo Photo" block ────────────────────────────────────
+    // Block that opens a full album browser modal and converts to core/image on insert.
+    wp_enqueue_script(
+      'piwigo-block',
+      PIWIGO_MEDIA_URL . 'assets/js/piwigo-block.js',
+      array('wp-blocks', 'wp-element', 'wp-components', 'wp-data', 'wp-api-fetch', 'wp-block-editor'),
+      PIWIGO_MEDIA_VERSION,
+      true
+    );
+    wp_localize_script('piwigo-block', 'piwigoMediaConfig', $config);
+
     // ── Gutenberg inserter (registerInserterMediaCategory, WP 6.4+) ────────
     // Dependencies: wp-data (for dispatch), wp-api-fetch, wp-blocks
     wp_enqueue_script(
