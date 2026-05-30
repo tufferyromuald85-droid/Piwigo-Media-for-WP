@@ -14,11 +14,26 @@
 (function ($, wp) {
   'use strict';
 
+  var DBG = '[PiwigoMedia]';
+
+  console.log(DBG, 'script loaded', {
+    wp:              typeof wp,
+    wpMedia:         !!(wp && wp.media),
+    wpBackbone:      !!(wp && wp.Backbone),
+    MediaFrame:      !!(wp && wp.media && wp.media.view && wp.media.view.MediaFrame),
+    MediaFramePost:  !!(wp && wp.media && wp.media.view && wp.media.view.MediaFrame && wp.media.view.MediaFrame.Post),
+    wpMediaView:     !!(wp && wp.media && wp.media.View),
+    wpController:    !!(wp && wp.media && wp.media.controller),
+  });
+
   if (
     !wp || !wp.media || !wp.Backbone ||
     !wp.media.view || !wp.media.view.MediaFrame || !wp.media.view.MediaFrame.Post ||
     !wp.media.View || !wp.media.controller
-  ) return;
+  ) {
+    console.error(DBG, 'guard failed — missing wp.media globals, aborting patch');
+    return;
+  }
 
   var cfg   = window.piwigoMediaConfig || {};
   var i18n  = cfg.i18n    || {};
@@ -310,8 +325,11 @@
     render: function () { return this; },
   });
 
+  console.log(DBG, 'all globals OK, patching MediaFrame.Post');
+
   // ── Helper: add Piwigo tab to any router view that has .set() ────────────
   function addPiwigoTab(routerView) {
+    console.log(DBG, 'addPiwigoTab called', routerView);
     // routerView can be a wp.media.view.Router OR a wp.media.controller.Region
     // (Region wraps the view in .view). Try both.
     var target = (routerView && routerView.view && typeof routerView.view.set === 'function')
@@ -334,21 +352,19 @@
   wp.media.view.MediaFrame.Post = OrigPost.extend({
 
     initialize: function () {
+      console.log(DBG, 'MediaFrame.Post initialize');
       OrigPost.prototype.initialize.apply(this, arguments);
 
-      // Mechanism 1 (primary): clicked tab 'piwigo-browser' fires this event.
       this.on('content:create:piwigo-browser', this.piwigoContent, this);
 
-      // Mechanism 2 (fallback): fired when the router is rendered with mode 'browse'.
-      // Covers cases where browseRouter() is not called (e.g. WP version differences).
       this.on('router:create:browse', function (routerView) {
+        console.log(DBG, 'router:create:browse fired', routerView);
         addPiwigoTab(routerView);
       }, this);
     },
 
-    // browseRouter is called by WordPress to populate the tab navigation.
-    // We call the original (safe) then add our tab.
     browseRouter: function (routerView) {
+      console.log(DBG, 'browseRouter called', typeof OrigPost.prototype.browseRouter);
       if (typeof OrigPost.prototype.browseRouter === 'function') {
         OrigPost.prototype.browseRouter.apply(this, arguments);
       }
