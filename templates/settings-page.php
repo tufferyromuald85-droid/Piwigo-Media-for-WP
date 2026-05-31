@@ -1,6 +1,12 @@
 <?php defined('ABSPATH') or die('No direct access.'); ?>
 <div class="wrap">
-  <h1>Piwigo Media — Settings</h1>
+  <h1>
+    <img src="<?= esc_url(PIWIGO_MEDIA_URL . 'assets/images/piwigo-color.svg') ?>"
+         width="36" height="36"
+         style="vertical-align:middle;margin-right:10px;margin-bottom:2px"
+         alt="">
+    Piwigo Media — Settings
+  </h1>
 
   <?php if ($message): ?>
     <div class="notice notice-success is-dismissible"><p><?= esc_html($message) ?></p></div>
