@@ -57,16 +57,43 @@ class Piwigo_Api
     return true; // webmaster or admin authenticated via API key ✓
   }
 
-  /** List all categories/albums, including private ones. */
+  /** List all categories/albums, including private ones, with thumbnails where available. */
   public function get_albums(): array|WP_Error
   {
-    // pwg.categories.getAdminList (admin_only=true) queries CATEGORIES_TABLE directly
-    // without running calculate_permissions() — so private albums are never excluded.
-    // pwg.categories.getList respects USER_ACCESS_TABLE; since piwigo_user_access is
-    // typically empty even for webmasters, it incorrectly excludes private albums.
-    return $this->call('pwg.categories.getAdminList', array(
-      'recursive' => 1,
+    // getAdminList returns ALL albums (including private) but without thumbnails.
+    // getList returns only accessible albums but WITH thumbnails (tn_url).
+    // We merge: use getAdminList as the authoritative list, then enrich with
+    // thumbnails from getList for public albums.
+    $admin = $this->call('pwg.categories.getAdminList', array('recursive' => 1));
+    if (is_wp_error($admin)) return $admin;
+
+    $list = $this->call('pwg.categories.getList', array(
+      'recursive'      => 1,
+      'tree_output'    => 0,
+      'thumbnail_size' => 'thumb',
     ));
+
+    $thumb_map = array();
+    if (!is_wp_error($list)) {
+      foreach ($list['result']['categories'] ?? array() as $cat) {
+        if (!empty($cat['tn_url'])) {
+          $thumb_map[(int) $cat['id']] = $cat['tn_url'];
+        }
+      }
+    }
+
+    // Enrich admin list with thumbnails from getList
+    $cats = $admin['result']['categories'] ?? array();
+    foreach ($cats as &$cat) {
+      $id = (int) $cat['id'];
+      if (isset($thumb_map[$id])) {
+        $cat['tn_url'] = $thumb_map[$id];
+      }
+    }
+    unset($cat);
+    $admin['result']['categories'] = $cats;
+
+    return $admin;
   }
 
   /**
@@ -96,12 +123,14 @@ class Piwigo_Api
   /** List photos in an album, paginated. */
   public function get_album_photos(int $album_id, int $page = 1, int $per_page = 24): array|WP_Error
   {
-    return $this->call('pwg.categories.getImages', array(
-      'cat_id'    => $album_id,
-      'per_page'  => $per_page,
-      'page'      => $page - 1,        // Piwigo pages are 0-indexed
-      'order'     => 'date_creation DESC',
-      'f_with_thumbnail' => 'true',
+    // pwg.categories.getImages applies get_sql_condition_FandF(forbidden_categories),
+    // which filters out private albums even for webmaster API key users when
+    // piwigo_user_access is empty (the default). Use WPConnector's admin method
+    // that queries the DB directly without permission filtering.
+    return $this->call('pwg.wp.getAlbumPhotos', array(
+      'album_id' => $album_id,
+      'per_page' => $per_page,
+      'page'     => $page - 1,
     ));
   }
 
