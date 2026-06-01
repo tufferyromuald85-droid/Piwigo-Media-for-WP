@@ -257,14 +257,27 @@ class Piwigo_Rest
 
   private static function format_album(array $cat): array
   {
+    // getAdminList doesn't return id_uppercat but includes uppercats (ancestor path CSV)
+    $parent_id = null;
+    if (isset($cat['id_uppercat'])) {
+      $parent_id = (int) $cat['id_uppercat'];
+    } elseif (!empty($cat['uppercats'])) {
+      $parts = array_filter(explode(',', (string) $cat['uppercats']));
+      if (count($parts) > 1) {
+        array_pop($parts); // remove own ID (last element)
+        $parent_id = (int) end($parts);
+      }
+    }
+
     return array(
-      'id'            => (int) $cat['id'],
-      'name'          => $cat['name'] ?? '',
-      'comment'       => $cat['comment'] ?? '',
-      'nb_images'     => (int) ($cat['nb_images'] ?? 0),
-      'total_nb_images' => (int) ($cat['total_nb_images'] ?? 0),
-      'thumbnail_url' => $cat['tn_url'] ?? null,
-      'parent_id'     => isset($cat['id_uppercat']) ? (int) $cat['id_uppercat'] : null,
+      'id'              => (int) $cat['id'],
+      'name'            => $cat['name'] ?? '',
+      'comment'         => $cat['comment'] ?? '',
+      'nb_images'       => (int) ($cat['nb_images'] ?? 0),
+      'total_nb_images' => (int) ($cat['total_nb_images'] ?? $cat['nb_images'] ?? 0),
+      'thumbnail_url'   => $cat['tn_url'] ?? null,
+      'parent_id'       => $parent_id,
+      'is_private'      => ($cat['status'] ?? 'public') === 'private',
     );
   }
 

@@ -57,16 +57,15 @@ class Piwigo_Api
     return true; // webmaster or admin authenticated via API key ✓
   }
 
-  /** List all accessible categories/albums. */
+  /** List all categories/albums, including private ones. */
   public function get_albums(): array|WP_Error
   {
-    // Do NOT pass 'public' => 1 — that would add "status = 'public'" to the SQL
-    // query and use guest permissions, hiding private albums even for admins.
-    // Without this param, Piwigo uses the authenticated user's actual permissions.
-    return $this->call('pwg.categories.getList', array(
-      'recursive'      => 1,
-      'tree_output'    => 0,
-      'thumbnail_size' => 'thumb',
+    // pwg.categories.getAdminList (admin_only=true) queries CATEGORIES_TABLE directly
+    // without running calculate_permissions() — so private albums are never excluded.
+    // pwg.categories.getList respects USER_ACCESS_TABLE; since piwigo_user_access is
+    // typically empty even for webmasters, it incorrectly excludes private albums.
+    return $this->call('pwg.categories.getAdminList', array(
+      'recursive' => 1,
     ));
   }
 
