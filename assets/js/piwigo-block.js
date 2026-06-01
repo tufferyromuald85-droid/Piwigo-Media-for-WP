@@ -263,9 +263,31 @@
   // ── Block edit component ──────────────────────────────────────────────────
   function PiwigoPhotoEdit( props ) {
     var clientId    = props.clientId;
+    var attributes  = props.attributes || {};
     var _s          = useState( false );
     var isOpen      = _s[0];
     var setOpen     = _s[1];
+
+    if ( attributes.preview ) {
+      return el( 'div', { className: 'piwigo-block-placeholder piwigo-block-preview' },
+        el( 'div', { className: 'piwigo-block-placeholder-inner' },
+          el( 'img', {
+            src:    ( cfg.pluginUrl || '' ) + 'assets/images/piwigo-black.svg',
+            width:  48,
+            height: 48,
+            alt:    '',
+            'aria-hidden': 'true',
+            className: 'piwigo-block-logo',
+          } ),
+          el( 'p', null, i18n.tabLabel || 'Piwigo' ),
+          el( 'div', { className: 'piwigo-block-preview-grid', 'aria-hidden': 'true' },
+            [ 1, 2, 3, 4 ].map( function ( item ) {
+              return el( 'span', { key: item, className: 'piwigo-block-preview-tile' } );
+            } )
+          )
+        )
+      );
+    }
 
     function handleInsert( attachmentId, url, title ) {
       setOpen( false );
@@ -283,7 +305,7 @@
     return el( 'div', { className: 'piwigo-block-placeholder' },
       el( 'div', { className: 'piwigo-block-placeholder-inner' },
         el( 'img', {
-          src:    ( cfg.pluginUrl || '' ) + 'assets/images/piwigo-color.svg',
+          src:    ( cfg.pluginUrl || '' ) + 'assets/images/piwigo-black.svg',
           width:  72,
           height: 72,
           alt:    '',
@@ -317,12 +339,19 @@
     title:       i18n.tabLabel || 'Piwigo Photo',
     description: 'Browse and insert a photo from your Piwigo gallery.',
     category:    'media',
-    icon:        { src: piwigoIcon, foreground: '#f58127' },
+    icon:        { src: piwigoIcon, foreground: '#000000' },
     keywords:    [ 'piwigo', 'photo', 'gallery', 'image' ],
     apiVersion:  3,
 
     attributes: {
-      // No persistent attributes — the block replaces itself with core/image on insert
+      // Runtime-only preview attribute used by the inserter preview.
+      preview: { type: 'boolean', default: false },
+    },
+
+    example: {
+      attributes: {
+        preview: true,
+      },
     },
 
     edit: PiwigoPhotoEdit,

@@ -18,6 +18,23 @@
   display: block;
   margin: 0 auto 8px;
 }
+.piwigo-block-preview {
+  padding: 18px 12px;
+}
+.piwigo-block-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 42px);
+  gap: 6px;
+  justify-content: center;
+  margin-top: 10px;
+}
+.piwigo-block-preview-tile {
+  display: block;
+  width: 42px;
+  height: 32px;
+  border-radius: 3px;
+  background: linear-gradient(135deg, #e9e9e9 0%, #cfcfcf 100%);
+}
 
 /* Piwigo-branded primary button (block placeholder + classic editor) */
 .piwigo-browse-btn.components-button,
