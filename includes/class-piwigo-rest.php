@@ -240,7 +240,7 @@ class Piwigo_Rest
       exit;
     }
 
-    $response = wp_remote_get($url, array('timeout' => 30));
+    $response = $api->get_authenticated_url($url, array('timeout' => 30));
     if (is_wp_error($response)) {
       status_header(502);
       exit;
@@ -257,7 +257,7 @@ class Piwigo_Rest
 
   private static function format_album(array $cat): array
   {
-    // getAdminList doesn't return id_uppercat but includes uppercats (ancestor path CSV)
+    // Some Piwigo API responses include uppercats instead of id_uppercat.
     $parent_id = null;
     if (isset($cat['id_uppercat'])) {
       $parent_id = (int) $cat['id_uppercat'];

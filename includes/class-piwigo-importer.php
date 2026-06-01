@@ -68,8 +68,9 @@ class Piwigo_Importer
     $file_url = $this->resolve_source_url($info, $server_url);
     if (is_wp_error($file_url)) return $file_url;
 
-    // Download to a temporary file
-    $tmp = download_url($file_url, 30);
+    // Download to a temporary file. Private Piwigo photos require API key auth
+    // even when the metadata request already succeeded.
+    $tmp = $this->api->download_url_to_temp($file_url, $info['file'] ?? ('piwigo-' . $photo_id));
     if (is_wp_error($tmp)) {
       return new WP_Error('piwigo_download', 'Could not download photo: ' . $tmp->get_error_message());
     }
@@ -212,7 +213,13 @@ class Piwigo_Importer
 
   private function resolve_source_url(array $info, string $server_url): string|WP_Error
   {
-    // file_url is the direct download link Piwigo provides
+    // download_url points to Piwigo action.php; server-side requests add API
+    // auth in Piwigo_Api::get_authenticated_url().
+    if (!empty($info['download_url'])) {
+      return $info['download_url'];
+    }
+
+    // file_url is the direct download link some Piwigo versions provide.
     if (!empty($info['file_url'])) {
       return $info['file_url'];
     }

@@ -2,6 +2,9 @@
 
 Browse and import photos from your Piwigo gallery directly inside the WordPress media modal.
 
+The WordPress plugin works standalone with Piwigo's native `ws.php` API and an
+API key. The Piwigo-side connector is optional.
+
 ## What it does
 
 **In WordPress:**
@@ -63,10 +66,11 @@ All routes under `/wp-json/piwigo-media/v1/` — require `upload_files` capabili
 - The Piwigo API key is stored **AES-256-CBC encrypted** in `wp_options`, never exposed to the browser
 - All REST routes require WordPress authentication (cookie + nonce, or Application Password)
 - All Piwigo calls are server-to-server only
+- Private albums and photo downloads are accessed through Piwigo's native API permissions for the API key user; no Piwigo plugin is required for browsing/importing
 
-## Companion extension
+## Optional companion extension
 
-Install **[WPConnector for Piwigo](https://github.com/tufferyromuald85-droid/WPConnector-for-Piwigo)** on your Piwigo instance to enable the "Send to WordPress" button in the Batch Manager.
+Install **[WPConnector for Piwigo](https://github.com/tufferyromuald85-droid/WPConnector-for-Piwigo)** only if you want a "Send to WordPress" button in the Piwigo Batch Manager. Browsing albums from WordPress does not require it.
 
 ## License
 

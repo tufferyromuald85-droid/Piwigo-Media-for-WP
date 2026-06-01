@@ -57,43 +57,16 @@ class Piwigo_Api
     return true; // webmaster or admin authenticated via API key ✓
   }
 
-  /** List all categories/albums, including private ones, with thumbnails where available. */
+  /** List all albums visible to the authenticated Piwigo API user. */
   public function get_albums(): array|WP_Error
   {
-    // getAdminList returns ALL albums (including private) but without thumbnails.
-    // getList returns only accessible albums but WITH thumbnails (tn_url).
-    // We merge: use getAdminList as the authoritative list, then enrich with
-    // thumbnails from getList for public albums.
-    $admin = $this->call('pwg.categories.getAdminList', array('recursive' => 1));
-    if (is_wp_error($admin)) return $admin;
-
-    $list = $this->call('pwg.categories.getList', array(
+    // Do not pass "public": Piwigo would switch to guest permissions and hide
+    // private albums. With X-Piwigo-API, getList uses the API key user's rights.
+    return $this->call('pwg.categories.getList', array(
       'recursive'      => 1,
       'tree_output'    => 0,
       'thumbnail_size' => 'thumb',
     ));
-
-    $thumb_map = array();
-    if (!is_wp_error($list)) {
-      foreach ($list['result']['categories'] ?? array() as $cat) {
-        if (!empty($cat['tn_url'])) {
-          $thumb_map[(int) $cat['id']] = $cat['tn_url'];
-        }
-      }
-    }
-
-    // Enrich admin list with thumbnails from getList
-    $cats = $admin['result']['categories'] ?? array();
-    foreach ($cats as &$cat) {
-      $id = (int) $cat['id'];
-      if (isset($thumb_map[$id])) {
-        $cat['tn_url'] = $thumb_map[$id];
-      }
-    }
-    unset($cat);
-    $admin['result']['categories'] = $cats;
-
-    return $admin;
   }
 
   /**
@@ -123,14 +96,12 @@ class Piwigo_Api
   /** List photos in an album, paginated. */
   public function get_album_photos(int $album_id, int $page = 1, int $per_page = 24): array|WP_Error
   {
-    // pwg.categories.getImages applies get_sql_condition_FandF(forbidden_categories),
-    // which filters out private albums even for webmaster API key users when
-    // piwigo_user_access is empty (the default). Use WPConnector's admin method
-    // that queries the DB directly without permission filtering.
-    return $this->call('pwg.wp.getAlbumPhotos', array(
-      'album_id' => $album_id,
-      'per_page' => $per_page,
-      'page'     => $page - 1,
+    return $this->call('pwg.categories.getImages', array(
+      'cat_id'    => $album_id,
+      'per_page'  => $per_page,
+      'page'      => $page - 1, // Piwigo pages are 0-indexed.
+      'order'     => 'date_creation DESC',
+      'f_with_thumbnail' => 'true',
     ));
   }
 
@@ -154,7 +125,12 @@ class Piwigo_Api
 
     $info = $data['result'] ?? array();
 
-    // Prefer original download URL
+    // Prefer Piwigo's action.php download URL for originals; server-side
+    // requests add API auth in get_authenticated_url().
+    if (!empty($info['download_url'])) {
+      return $info['download_url'];
+    }
+
     if (!empty($info['file_url'])) {
       return $info['file_url'];
     }
@@ -168,6 +144,75 @@ class Piwigo_Api
     }
 
     return new WP_Error('piwigo_no_url', 'Could not resolve photo URL for ID ' . $photo_id);
+  }
+
+  /** Fetch a Piwigo URL with the configured API key auth. */
+  public function get_authenticated_url(string $url, array $args = []): array|WP_Error
+  {
+    $url = $this->with_action_auth($url);
+
+    $request_args = array_merge(array(
+      'headers' => $this->headers(),
+      'timeout' => 30,
+    ), $args);
+
+    $request_args['headers'] = array_merge($this->headers(), $args['headers'] ?? array());
+
+    return wp_remote_get($url, $request_args);
+  }
+
+  /** Download a Piwigo URL to a temporary file with the configured API key auth. */
+  public function download_url_to_temp(string $url, string $filename_hint = ''): string|WP_Error
+  {
+    require_once ABSPATH . 'wp-admin/includes/file.php';
+
+    $path = (string) wp_parse_url($url, PHP_URL_PATH);
+    $hint = $filename_hint ?: basename($path);
+    $tmp = wp_tempnam($hint ?: 'piwigo-media');
+    if (!$tmp) {
+      return new WP_Error('piwigo_tmpfile', 'Could not create a temporary file for the Piwigo download.');
+    }
+
+    $response = $this->get_authenticated_url($url, array(
+      'stream'   => true,
+      'filename' => $tmp,
+    ));
+
+    if (is_wp_error($response)) {
+      @unlink($tmp);
+      return $response;
+    }
+
+    $code = wp_remote_retrieve_response_code($response);
+    if ($code !== 200) {
+      @unlink($tmp);
+      return new WP_Error('piwigo_download_http', 'Piwigo returned HTTP ' . $code . ' while downloading the photo.');
+    }
+
+    return $tmp;
+  }
+
+  private function with_action_auth(string $url): string
+  {
+    if (!$this->api_key || !$this->server_url) {
+      return $url;
+    }
+
+    $server = wp_parse_url($this->server_url);
+    $target = wp_parse_url($url);
+    if (!$server || !$target) {
+      return $url;
+    }
+
+    $same_host = ($server['host'] ?? '') === ($target['host'] ?? '');
+    $is_action = str_ends_with($target['path'] ?? '', '/action.php') || ($target['path'] ?? '') === '/action.php';
+    if (!$same_host || !$is_action) {
+      return $url;
+    }
+
+    // action.php is outside ws.php and does not read X-Piwigo-API, while
+    // include/user.inc.php does accept ?auth=. This URL is used server-side only.
+    return add_query_arg('auth', $this->api_key, $url);
   }
 
   // ── Internal HTTP layer ────────────────────────────────────────────────────
